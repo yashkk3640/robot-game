@@ -114,8 +114,6 @@ const Robot = () => {
 
     useEffect(() => {
 
-
-
         loader.load('RobotExpressive.glb', function (gltf) {
 
             model.current = gltf.scene;
@@ -291,12 +289,9 @@ const Robot = () => {
                 const state = activeAction._clip.name
                 fadeToAction('Jump', 0.2, () => fadeToAction(state, 0.2))
                 point += 1
-                // pointView.geometry.parameters.text = `Point ${point}`
                 scene.remove(pointView)
                 loadText();
                 pointView.updateMorphTargets();
-                // geometry. = `Point ${point}`
-                console.log(pointView.geometry.parameters.text)
                 RandomCube(cube)
             }
 
@@ -330,7 +325,7 @@ const Robot = () => {
             state = { direction: 'x', value: -1 }
             rotate(-1);
         }
-        currKey = e.onKeyPress
+        currKey = e.key
     }
     const rotate = (dir) => {
         model.current.rotation.y = 1.6 * dir;
