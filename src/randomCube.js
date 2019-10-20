@@ -20,3 +20,10 @@ export const checkCollide = (model,obj,len) => {
         return true
     return false
 }
+
+export const UP = 'w'
+export const DOWN = 's'
+export const RIGHT = 'd'
+export const LEFT = 'a'
+export const WALK_SPEED = 0.1
+export const RUN_SPEED = 0.2

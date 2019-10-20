@@ -9,15 +9,15 @@ import GLTFLoader from 'three-gltf-loader'
 // import RobotGlb from 'RobotExpressive.glb'
 
 import { cube } from './Square'
-import { RandomCube, checkCollide } from './randomCube';
+import { RandomCube, checkCollide, UP, DOWN, LEFT, RIGHT, WALK_SPEED, RUN_SPEED } from './randomCube';
 
-const Robot = () => {
+const Robot = ({point,setPoint}) => {
     // var gui, mixer, actions, activeAction, previousAction, i;
     // var face, pointView, geometry, centerOffset, font, point = 1;
     // var api = { state: 'Walking' };
     RandomCube(cube)
-    let mixer, actions, activeAction, previousAction, i, pointView, geometry, centerOffset, font, point = 1;
-    var currKey = 'w'
+    let mixer, actions, activeAction, previousAction, i, pointView, geometry, centerOffset, font;
+    var currKey = UP
     var state = { direction: 'z', value: 1 };
 
     const mount = useRef()
@@ -25,7 +25,7 @@ const Robot = () => {
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.25, 300);
     camera.position.set(0, 10, -30);
-    camera.lookAt(new THREE.Vector3(2, 2, 0));
+    // camera.lookAt(new THREE.Vector3(2, 2, 0));
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xe0e0e0);
@@ -113,6 +113,7 @@ const Robot = () => {
 
 
     useEffect(() => {
+        console.log('useeffect')
 
         loader.load('RobotExpressive.glb', function (gltf) {
 
@@ -129,7 +130,7 @@ const Robot = () => {
             scene.add(arrowHelper);
 
             // stats
-
+            camera.lookAt(model.current.position)
             // mount.current.appendChild(stats.dom);
             animate()
 
@@ -274,12 +275,12 @@ const Robot = () => {
         update()
     }
     const update = () => {
-
+        console.log(point)
         if (activeAction._clip.name === 'Death')
             return
-        let i = 0.1
+        let i = WALK_SPEED + (point * 0.02)
         if (activeAction._clip.name === 'Running')
-            i = 0.2
+            i = RUN_SPEED + (point * 0.02)
         if (activeAction._clip.name === 'Walking' || activeAction._clip.name === 'Running') {
 
             model.current.position[state.direction] += i * state.value;
@@ -287,12 +288,7 @@ const Robot = () => {
 
             if (checkCollide(model.current.position, cube.position, 2)) {
                 const state = activeAction._clip.name
-                fadeToAction('Jump', 0.2, () => fadeToAction(state, 0.2))
-                point += 1
-                scene.remove(pointView)
-                loadText();
-                pointView.updateMorphTargets();
-                RandomCube(cube)
+                success(state)
             }
 
             // Set Vector
@@ -312,16 +308,16 @@ const Robot = () => {
             return
         } else
             fadeToAction('Walking', 0.5)
-        if (e.key === 'a') {
+        if (e.key === LEFT) {
             state = { direction: 'x', value: 1 }
             rotate(1);
-        } else if (e.key === 'w') {
+        } else if (e.key === UP) {
             state = { direction: 'z', value: 1 }
             rotate(0);
-        } else if (e.key === 's') {
+        } else if (e.key === DOWN) {
             state = { direction: 'z', value: -1 }
             rotate(2);
-        } else if (e.key === 'd') {
+        } else if (e.key === RIGHT) {
             state = { direction: 'x', value: -1 }
             rotate(-1);
         }
@@ -331,13 +327,21 @@ const Robot = () => {
         model.current.rotation.y = 1.6 * dir;
     }
 
+    const success = (state) => {
+        fadeToAction('Jump', 0.2, () => fadeToAction(state, 0.2))
+        setPoint(point + 1)
+        scene.remove(pointView)
+        loadText();
+        RandomCube(cube)
+    }
+
     return (
         <div>
             <div ref={ref => (mount.current = ref)} />
-            <button style={{ bottom: '10vw', right: '10vw', }} onClick={(e) => onKeyPress({ ...e, key: 'w' })}>W</button>
-            <button style={{ bottom: 0, right: '10vw', }} onClick={(e) => onKeyPress({ ...e, key: 's' })}>S</button>
-            <button style={{ bottom: 0, right: 0, }} onClick={(e) => onKeyPress({ ...e, key: 'd' })}>D</button>
-            <button style={{ bottom: 0, right: '20vw', }} onClick={(e) => onKeyPress({ ...e, key: 'a' })}>A</button>
+            <button style={{ bottom: '10vw', right: '10vw', }} onClick={(e) => onKeyPress({ ...e, key: UP })}>{UP}</button>
+            <button style={{ bottom: 0, right: '10vw', }} onClick={(e) => onKeyPress({ ...e, key: DOWN })}>{DOWN}</button>
+            <button style={{ bottom: 0, right: 0, }} onClick={(e) => onKeyPress({ ...e, key: RIGHT })}>{RIGHT}</button>
+            <button style={{ bottom: 0, right: '20vw', }} onClick={(e) => onKeyPress({ ...e, key: LEFT })}>{LEFT}</button>
         </div>
     );
 
