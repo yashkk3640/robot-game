@@ -6,6 +6,7 @@
   <style>
     body {
       margin: 0;
+      background-color: black;
     }
 
     #root {
@@ -29,13 +30,34 @@
       width: 10vw;
       height: 10vw;
     }
+
+    * {
+      touch-action: manipulation;
+    }
+
+    .score {
+      background-color: #4CAFFF;
+      border: 10px solid #1d74FF;
+      border-radius: 5px;
+      color: white;
+      padding: 5px;
+      text-align: center;
+      font-size: 50px;
+      margin: 5px;
+      cursor: pointer;
+      position: fixed;
+      z-index: 999;
+      width: 140px;
+      height: 120px;
+    }
   </style>
 </head>
 
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <script>
-    console.log = console.warn = console.error = () => {};
+    console.log = console.warn = console.error = () => { };
+    // window.onload = () => {document.getElementById('root').click()}
   </script>
   <div id="root"></div>
 </body>
