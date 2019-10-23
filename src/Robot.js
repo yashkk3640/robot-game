@@ -8,32 +8,50 @@ import GLTFLoader from 'three-gltf-loader'
 // import FontType from 'three/examples/fonts/gentilis_bold.typeface.json';
 // import RobotGlb from 'RobotExpressive.glb'
 
-import { cube } from './Square'
+// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+
+import { cube, createCube } from './Square'
 import { RandomCube, checkCollide, UP, DOWN, LEFT, RIGHT, WALK_SPEED, RUN_SPEED } from './randomCube';
 
-const Robot = ({point,setPoint}) => {
+const dcubes = [createCube(), createCube(), createCube(), createCube(), createCube(), createCube(), createCube(), createCube()]
+var dpr = window.devicePixelRatio;
+const textureSize = 512 * dpr;
+console.log(textureSize)
+
+const Robot = ({ point, setAlive }) => {
     // var gui, mixer, actions, activeAction, previousAction, i;
     // var face, pointView, geometry, centerOffset, font, point = 1;
     // var api = { state: 'Walking' };
     RandomCube(cube)
-    let mixer, actions, activeAction, previousAction, i, pointView, geometry, centerOffset, font;
+    let mixer, actions, activeAction, previousAction, i, pointView, geometry, centerOffset, font, requestID;
+    // let texture, sprite, controls;
     var currKey = UP
     var state = { direction: 'z', value: 1 };
 
     const mount = useRef()
     const model = useRef()
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.25, 300);
+    // const topScene = new THREE.Scene();
+    // topScene.background = THREE.transparent();
+
+    // const topCamera = new THREE.PerspectiveCamera(-75, window.innerWidth / window.innerHeight, 0.25, 300);
+    // topCamera.position.y = 100
+    // topCamera.lookAt(new THREE.Vector3(0, 0, 0))
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.25, 20000);
     camera.position.set(0, 10, -30);
     // camera.lookAt(new THREE.Vector3(2, 2, 0));
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xe0e0e0);
-    scene.fog = new THREE.Fog(0xe0e0e0, 50, 300);
+    // scene.background = new THREE.Color(0xe0e0e0);
+    // scene.fog = new THREE.Fog(0xe0e0e0, 100, 1000);
 
     const clock = new THREE.Clock();
     // const stats = new Stats();
 
+    dcubes.forEach(cube => {
+        scene.add(cube)
+    });
     // arrow
     var dir = new THREE.Vector3(1, 0, 0);
 
@@ -58,14 +76,14 @@ const Robot = ({point,setPoint}) => {
 
     // ground
 
-    var mesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(2000, 2000), new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false }));
+    var mesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(2000, 2000), new THREE.MeshPhongMaterial({ color: 0xffffff, depthWrite: false }));
     mesh.rotation.x = - Math.PI / 2;
     scene.add(mesh);
 
-    var grid = new THREE.GridHelper(200, 40, 0x000000, 0x000000);
+    var grid = new THREE.GridHelper(200, 40, 0x00000, 0x00000);
 
     grid.material.opacity = 0.2;
-    grid.material.transparent = true;
+    grid.material.transparent = false;
     scene.add(grid);
 
     scene.add(cube)
@@ -74,10 +92,10 @@ const Robot = ({point,setPoint}) => {
 
     var loader = new GLTFLoader();
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
     const loadText = () => {
-        geometry = new THREE.TextGeometry(`Point ${point}`, {
+        geometry = new THREE.TextGeometry(`Point ${point.current}`, {
             font: font,
             size: 2,
             height: 1,
@@ -111,18 +129,34 @@ const Robot = ({point,setPoint}) => {
         loadText()
     }, null, e => console.log(e));
 
+    var marsGeo = new THREE.CubeGeometry(1000, 1000, 1000);
+    var marsMaterials = [
+        new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('mars/mandaris_ft.png'), side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('mars/mandaris_bk.png'), side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('mars/mandaris_up.png'), side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('mars/mandaris_dn.png'), side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('mars/mandaris_rt.png'), side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('mars/mandaris_lf.png'), side: THREE.DoubleSide })
+    ]
+
+    var marsMaterial = new THREE.MeshFaceMaterial(marsMaterials)
+
+    var mars = new THREE.Mesh(marsGeo, marsMaterial)
+    scene.add(mars)
+
+    // var ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.3);
+    // scene.add(ambientLight)
 
     useEffect(() => {
-        console.log('useeffect')
-
         loader.load('RobotExpressive.glb', function (gltf) {
 
             model.current = gltf.scene;
             scene.add(model.current);
 
             createGUI(model.current, gltf.animations);
-            // renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth - 10, window.innerHeight - 10);
+            renderer.autoClear = false;
             renderer.gammaOutput = true;
             renderer.gammaFactor = 2.2;
             mount.current.appendChild(renderer.domElement);
@@ -131,6 +165,8 @@ const Robot = ({point,setPoint}) => {
 
             // stats
             camera.lookAt(model.current.position)
+            addDangerCube()
+
             // mount.current.appendChild(stats.dom);
             animate()
 
@@ -140,13 +176,18 @@ const Robot = ({point,setPoint}) => {
 
         });
 
-        const keypress = onKeyPress
-        window.addEventListener('keypress', keypress)
-        window.addEventListener('resize', onWindowResize, false);
+        // controls = new OrbitControls(camera, renderer.domElement)
 
+        const keypress = onKeyPress
+        window.addEventListener('keydown', keypress)
+        window.addEventListener('resize', onWindowResize, false);
+        // const setint = setInterval(() => {
+        // }, 10000);
         return () => {
-            window.removeEventListener('keypress', keypress)
+            window.removeEventListener('keydown', keypress)
             window.removeEventListener('resize', onWindowResize, false);
+
+            // clearInterval(setint)
         }
         // only execute when component initilize
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -237,7 +278,6 @@ const Robot = ({point,setPoint}) => {
 
         }
 
-
         if (callback)
             setTimeout(() => callback(), 3000 * duration)
 
@@ -247,7 +287,6 @@ const Robot = ({point,setPoint}) => {
             .setEffectiveWeight(1)
             .fadeIn(duration)
             .play();
-
     }
 
     const onWindowResize = () => {
@@ -267,7 +306,7 @@ const Robot = ({point,setPoint}) => {
 
         if (mixer) mixer.update(dt);
 
-        requestAnimationFrame(animate);
+        requestID = requestAnimationFrame(animate);
 
         renderer.render(scene, camera);
 
@@ -275,12 +314,17 @@ const Robot = ({point,setPoint}) => {
         update()
     }
     const update = () => {
-        console.log(point)
+        // controls.update();
+        // console.log('Danger Cubes :  ', dcubes.length)
+        cube.rotation.y += 0.01;
+        cube.rotation.x += 0.01;
+        cube.rotation.z += 0.01;
         if (activeAction._clip.name === 'Death')
             return
-        let i = WALK_SPEED + (point * 0.02)
+
+        let i = WALK_SPEED + (point.current * 0.02)
         if (activeAction._clip.name === 'Running')
-            i = RUN_SPEED + (point * 0.02)
+            i = RUN_SPEED + (point.current * 0.02)
         if (activeAction._clip.name === 'Walking' || activeAction._clip.name === 'Running') {
 
             model.current.position[state.direction] += i * state.value;
@@ -298,28 +342,34 @@ const Robot = ({point,setPoint}) => {
             pointView.position.z = model.current.position.z + 1
             arrowHelper.setDirection(new THREE.Vector3(cube.position.x - model.current.position.x, 0, cube.position.z - model.current.position.z))
         }
-        if (model.current.position.x > 100 || model.current.position.x < -100 || model.current.position.z > 100 || model.current.position.z < -100)
-            fadeToAction('Death', 0.5)
+        if (model.current.position.x > 100 || model.current.position.x < -100 || model.current.position.z > 100 || model.current.position.z < -100 || deathCubesColide() > 0) {
+            fadeToAction('Death', 0.5, () => {
+                setAlive(false)
+                window.cancelAnimationFrame(requestID);
+            })
+        }
     }
 
     const onKeyPress = (e) => {
         if (e.key === currKey && activeAction._clip.name !== 'Running') {
             fadeToAction('Running', 0.5)
             return
-        } else
+        } else if (e.key === currKey && activeAction._clip.name === 'Running')
+            return
+        else
             fadeToAction('Walking', 0.5)
-        if (e.key === LEFT) {
+        if (e.key === LEFT || e.keyCode === 37) {
             state = { direction: 'x', value: 1 }
             rotate(1);
-        } else if (e.key === UP) {
+        } else if (e.key === UP || e.keyCode === 38) {
             state = { direction: 'z', value: 1 }
             rotate(0);
-        } else if (e.key === DOWN) {
-            state = { direction: 'z', value: -1 }
-            rotate(2);
-        } else if (e.key === RIGHT) {
+        } else if (e.key === RIGHT || e.keyCode === 39) {
             state = { direction: 'x', value: -1 }
             rotate(-1);
+        } else if (e.key === DOWN || e.keyCode === 40) {
+            state = { direction: 'z', value: -1 }
+            rotate(2);
         }
         currKey = e.key
     }
@@ -329,15 +379,29 @@ const Robot = ({point,setPoint}) => {
 
     const success = (state) => {
         fadeToAction('Jump', 0.2, () => fadeToAction(state, 0.2))
-        setPoint(point + 1)
+        point.current = point.current + 1
         scene.remove(pointView)
         loadText();
-        RandomCube(cube)
+        const newCube = createCube()
+        dcubes.push(newCube)
+        scene.add(newCube)
+        RandomCube(cube, null, null, model.current.position)
+        addDangerCube()
+        document.getElementsByClassName('score')[0].innerHTML = `Score ${point.current * 1000}`
     }
 
+    const addDangerCube = () => {
+        for (let i = 0; i < dcubes.length; i++) {
+            RandomCube(dcubes[i], cube.position, dcubes.slice(0, i), model.current.position)
+            // const element = array[i];
+        }
+    }
+    const deathCubesColide = () => {
+        return dcubes.filter(cube => checkCollide(model.current.position, cube.position, 3)).length;
+    }
     return (
         <div>
-            <div ref={ref => (mount.current = ref)} />
+            <div ref={mount} />
             <button style={{ bottom: '10vw', right: '10vw', }} onClick={(e) => onKeyPress({ ...e, key: UP })}>{UP}</button>
             <button style={{ bottom: 0, right: '10vw', }} onClick={(e) => onKeyPress({ ...e, key: DOWN })}>{DOWN}</button>
             <button style={{ bottom: 0, right: 0, }} onClick={(e) => onKeyPress({ ...e, key: RIGHT })}>{RIGHT}</button>
